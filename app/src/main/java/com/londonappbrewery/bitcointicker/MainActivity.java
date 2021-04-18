@@ -1,5 +1,6 @@
 package com.londonappbrewery.bitcointicker;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -12,16 +13,22 @@ import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.Toast;
 
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
 import org.json.JSONException;
 import org.json.JSONObject;
-
 
 
 public class MainActivity extends AppCompatActivity {
 
     // Constants:
     // TODO: Create the base URL
-    private final String BASE_URL = "https://apiv2.bitcoin ...";
+    private final String BASE_URL = "https://blockchain.info/ticker";
 
     // Member Variables:
     TextView mPriceTextView;
@@ -45,35 +52,53 @@ public class MainActivity extends AppCompatActivity {
         spinner.setAdapter(adapter);
 
         // TODO: Set an OnItemSelected listener on the spinner
+        spinner.setOnItemSelectedListener(new OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Log.d("ticker", "item selected :" + parent.getItemAtPosition(position));
+                updatePrice(parent.getItemAtPosition(position).toString());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                Log.d("ticker", "no item selected");
+            }
+        });
 
     }
 
-    // TODO: complete the letsDoSomeNetworking() method
-    private void letsDoSomeNetworking(String url) {
+    public void updatePrice(final String currency) {
+        RequestQueue queue = Volley.newRequestQueue(this);
+        // Request a string response from the provided URL.
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, BASE_URL,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        Log.d("JSON_Call", "Response is: " + response);
+                        String updatedPrice = BitCoinPrice.priceBsyJSON(response, currency);
+                        if (updatedPrice != null) {
+                            updateUI(updatedPrice);
 
-//        AsyncHttpClient client = new AsyncHttpClient();
-//        client.get(WEATHER_URL, params, new JsonHttpResponseHandler() {
-//
-//            @Override
-//            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-//                // called when response HTTP status is "200 OK"
-//                Log.d("Clima", "JSON: " + response.toString());
-//                WeatherDataModel weatherData = WeatherDataModel.fromJson(response);
-//                updateUI(weatherData);
-//            }
-//
-//            @Override
-//            public void onFailure(int statusCode, Header[] headers, Throwable e, JSONObject response) {
-//                // called when response HTTP status is "4XX" (eg. 401, 403, 404)
-//                Log.d("Clima", "Request fail! Status code: " + statusCode);
-//                Log.d("Clima", "Fail response: " + response);
-//                Log.e("ERROR", e.toString());
-//                Toast.makeText(WeatherController.this, "Request Failed", Toast.LENGTH_SHORT).show();
-//            }
-//        });
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("JSON_Call", "Error occurred While Calling the URL" + error.toString());
+                Toast.makeText(getApplicationContext(), "Error occurred While Calling the URL", Toast.LENGTH_LONG).show();
 
+            }
+        });
 
+// Add the request to the RequestQueue.
+        queue.add(stringRequest);
+    }
+
+    private void updateUI(String price) {
+        mPriceTextView.setText(price);
     }
 
 
 }
+
